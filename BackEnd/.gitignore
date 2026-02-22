@@ -1,0 +1,14 @@
+# Ignore environment variables
+.env
+
+# Ignore Node modules
+node_modules/
+
+# Ignore log files
+logs
+*.log
+npm-debug.log*
+
+# Ignore uploads folder (optional if private)
+
+cd backen

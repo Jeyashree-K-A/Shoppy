@@ -1,0 +1,28 @@
+/* src/components/ProductSlider.css */
+
+.slider-section {
+  margin: 30px 40px;
+}
+
+.slider-heading {
+  font-size: 24px;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.slider-container {
+  display: flex;
+  overflow-x: auto;
+  gap: 16px;
+  scroll-behavior: smooth;
+  padding-bottom: 10px;
+}
+
+.slider-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.slider-container::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 10px;
+}
