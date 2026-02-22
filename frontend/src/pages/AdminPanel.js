@@ -9,7 +9,7 @@ import './AdminPanel.css';
 const getImageUrl = (image) => {
   if (!image) return '';
   if (image.startsWith('http')) return image; // Cloudinary URL
-  return `http://localhost:5000/${image.replace(/^\/?/, '')}`; // Old local fallback
+  return `https://shoppy-backend-4clp.onrender.com/${image.replace(/^\/?/, '')}`; // Old local fallback
 };
 
 export default function AdminPanel() {
@@ -104,7 +104,7 @@ export default function AdminPanel() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/products', {
+      const response = await fetch('https://shoppy-backend-4clp.onrender.com/api/admin/products', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
@@ -175,8 +175,8 @@ export default function AdminPanel() {
 
     try {
       const url = editMode
-        ? `http://localhost:5000/api/admin/products/${currentProduct._id}`
-        : 'http://localhost:5000/api/admin/products';
+        ? `https://shoppy-backend-4clp.onrender.com/api/admin/products/${currentProduct._id}`
+        : 'https://shoppy-backend-4clp.onrender.com/api/admin/products';
 
       const method = editMode ? 'PUT' : 'POST';
 
@@ -227,7 +227,7 @@ export default function AdminPanel() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/products/${id}`, {
+      const response = await fetch(`https://shoppy-backend-4clp.onrender.com/api/admin/products/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
