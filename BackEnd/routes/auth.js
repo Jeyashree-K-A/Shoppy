@@ -5,6 +5,8 @@ const User = require("../models/User");
 const auth = require("../middleware/authMiddleware");
 const router = express.Router();
 
+const isProduction = process.env.NODE_ENV === "production";
+
 // Signup
 router.post("/signup", async (req, res) => {
   const { name, email, password } = req.body;
@@ -27,6 +29,88 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+// Login — store token in cookie and return user
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: "Invalid email" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: "Invalid password" });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    user.token = token;
+    await user.save();
+
+    // ✅ Production-ல secure: true, sameSite: "None" (cross-domain cookies)
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin || false,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// ✅ Protected route to get user info from token
+router.get("/me", auth, async (req, res) => {
+  try {
+    res.json({
+      user: {
+        _id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        isAdmin: req.user.isAdmin || false,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch user" });
+  }
+});
+
+// Logout — clear token cookie
+router.get("/logout", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (user) {
+      user.token = null;
+      await user.save();
+    }
+
+    // ✅ Same settings as login cookie
+    res.clearCookie("token", {
+      path: "/",
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
+    });
+
+    res.status(200).json({ message: "Logout successful" });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ error: "Logout failed" });
+  }
+});
+
+module.exports = router;
 // Login — store token in cookie and return user
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
