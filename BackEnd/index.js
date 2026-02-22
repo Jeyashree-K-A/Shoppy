@@ -17,8 +17,8 @@ const app = express();
 
 // ✅ Middleware
 app.use(cors({
-  origin: "http://localhost:3000", // React frontend URL
-  credentials: true,               // ✅ Allow cookies from frontend
+  origin: ["http://localhost:3000", "https://shoppy-ou5z.onrender.com"],
+  credentials: true,
 }));
 app.use(express.json());           // ✅ Parse JSON body
 app.use(express.urlencoded({ extended: true })); // ✅ Parse URL-encoded data (for form submissions)
