@@ -8,7 +8,7 @@ import "./Cart.css";
 const getImageUrl = (image) => {
   if (!image) return "https://via.placeholder.com/120?text=No+Image";
   if (image.startsWith("http")) return image; // Cloudinary URL
-  return `http://localhost:5000/${image.replace(/^\/?/, "")}`; // Old local fallback
+  return `https://shoppy-backend-4clp.onrender.com/${image.replace(/^\/?/, "")}`; // Old local fallback
 };
 
 const Cart = () => {
