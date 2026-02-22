@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
-const path = require("path");
+
 
 // ✅ Load environment variables
 dotenv.config();
@@ -30,15 +30,6 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/cart", require("./routes/cart.routes"));
 app.use("/api/orders", require("./routes/order"));
 app.use("/api/admin", require("./routes/admin.routes")); // ✅ Admin routes for product management
-
-// Serve static React build files
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/build")));
-
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/build/index.html"));
-  });
-}
 
 app.get("/", (req, res) => {
   res.send("Welcome to Shoppy API!");
