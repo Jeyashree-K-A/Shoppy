@@ -1,5 +1,4 @@
 // src/components/ProductCard.js
-
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -9,8 +8,8 @@ import "./ProductCard.css";
 // ✅ Helper: Returns correct image URL (Cloudinary or local fallback)
 const getImageUrl = (image) => {
   if (!image) return "https://via.placeholder.com/200?text=No+Image";
-  if (image.startsWith("http")) return image; // Cloudinary URL
-  return `https://shoppy-backend-4clp.onrender.com/${image.replace(/^\/?/, "")}`; // Old local fallback
+  if (image.startsWith("http")) return image;
+  return `https://shoppy-backend-4clp.onrender.com/${image.replace(/^\/?/, "")}`;
 };
 
 const ProductCard = ({ product }) => {
@@ -25,7 +24,6 @@ const ProductCard = ({ product }) => {
       navigate(`/login?redirect=${location.pathname}`);
       return;
     }
-
     try {
       await addToCart(product._id, 1);
       setAdded(true);
@@ -44,16 +42,18 @@ const ProductCard = ({ product }) => {
 
   return (
     <div className="product-card">
-      <img
-        src={getImageUrl(product.image)}
-        alt={product.name}
-        onClick={handleImageClick}
-        style={{ cursor: "zoom-in" }}
-        onError={(e) => {
-          e.target.onerror = null;
-          e.target.src = "https://via.placeholder.com/200?text=No+Image";
-        }}
-      />
+      <div className="product-image-wrapper">
+        <img
+          src={getImageUrl(product.image)}
+          alt={product.name}
+          onClick={handleImageClick}
+          style={{ cursor: "zoom-in" }}
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "https://via.placeholder.com/200?text=No+Image";
+          }}
+        />
+      </div>
       <h3>{product.name}</h3>
       <p className="price">₹{product.price}</p>
       {product.discount && <p className="discount">Save ₹{product.discount}</p>}
