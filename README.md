@@ -25,7 +25,27 @@ It provides a complete online shopping experience with user authentication, cart
 
 ## 🧰 Tech Stack
 
-- **Frontend:** React
+### Frontend
+- React + Vite
+- CSS / Bootstrap
+
+### Backend
+- Node.js
+- Express.js
+
+### Database
+- MongoDB
+
+### Authentication
+- JSON Web Token (JWT)
+
+### Image Storage
+- **Cloudinary** (cloud-based image storage and optimization)
+- Multer (for handling file uploads)
+
+### Email Service
+- **Brevo (Sendinblue)** – transactional emails
+- Nodemailer- **Frontend:** React
 - **Backend:** Node.js, Express.js
 - **Database:** MongoDB
 - **Authentication:** JWT
