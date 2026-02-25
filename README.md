@@ -3,7 +3,7 @@
 Shoppy is a full-stack e-commerce web application developed using the **MERN stack**.  
 It provides a complete online shopping experience with user authentication, cart management, order placement, and admin control.
 
-Live Demo : https://shoppy-ou5z.onrender.com
+Live Demo : https://shoppy-ou5z.onrender.com/
 ---
 
 ## 🚀 Features
