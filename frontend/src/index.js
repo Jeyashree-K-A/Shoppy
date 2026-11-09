@@ -1,19 +1,28 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import './index.css';
-import axios from 'axios';
+import "./index.css";
+import axios from "axios";
 
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Correct backend URL
+axios.defaults.baseURL =
+  process.env.REACT_APP_API_URL ||
+  "https://shoppy-backend-4clp.onrender.com";
+
+// Allow cookies
 axios.defaults.withCredentials = true;
 
-// ✅ Restore token from localStorage on app load
+// Restore saved JWT token
 const savedToken = localStorage.getItem("token");
+
 if (savedToken) {
-  axios.defaults.headers.common["Authorization"] = `Bearer ${savedToken}`;
+  axios.defaults.headers.common["Authorization"] =
+    `Bearer ${savedToken}`;
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(
-    <App />
+const root = ReactDOM.createRoot(
+  document.getElementById("root")
 );
+
+root.render(<App />);
