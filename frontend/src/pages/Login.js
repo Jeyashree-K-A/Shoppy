@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -11,44 +12,79 @@ const Login = () => {
 
   const [formData, setFormData] = useState({
     email: "",
-    password: "",
+    password: ""
   });
 
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [e.target.name]: e.target.value
     }));
+
+    setError("");
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    setError("");
+
     try {
-      const res = await axios.post("/api/auth/login", formData, { withCredentials: true });
+      setSubmitting(true);
 
-      const { user, token } = res.data;
+      const response = await axios.post(
+        "/api/auth/login",
+        {
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password
+        }
+      );
 
-      if (user && token) {
-        login(user, token); // ✅ Set both in AuthContext
-        toast.success("Logged in successfully ✅");
-        navigate("/");
-      } else {
-        setError("Login failed. Please try again.");
+      const { user, token } = response.data;
+
+      if (!user || !token) {
+        throw new Error("Invalid login response.");
       }
+
+      login(user, token);
+
+      toast.success("Logged in successfully!");
+
+      navigate("/");
+
     } catch (err) {
-      console.error("Login error:", err);
-      setError(err.response?.data?.error || "Invalid email or password");
+      console.error(
+        "Login error:",
+        err.response?.data || err.message
+      );
+
+      setError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        "Invalid email or password."
+      );
+
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="auth-container">
       <div className="auth-box">
+
         <h2>Login</h2>
-        <form className="auth-form" onSubmit={handleLogin}>
+
+        <form
+          className="auth-form"
+          onSubmit={handleLogin}
+        >
           <label>Email</label>
+
           <input
             type="email"
             name="email"
@@ -59,6 +95,7 @@ const Login = () => {
           />
 
           <label>Password</label>
+
           <input
             type="password"
             name="password"
@@ -68,13 +105,24 @@ const Login = () => {
             onChange={handleChange}
           />
 
-          {error && <p className="error">{error}</p>}
+          {error && (
+            <p className="error">{error}</p>
+          )}
 
-          <button type="submit">Login</button>
+          <button
+            type="submit"
+            disabled={submitting}
+          >
+            {submitting ? "Logging in..." : "Login"}
+          </button>
+
         </form>
+
         <p className="auth-bottom-text">
-          Don’t have an account? <Link to="/signup">Sign Up</Link>
+          Don't have an account?{" "}
+          <Link to="/signup">Sign Up</Link>
         </p>
+
       </div>
     </div>
   );
