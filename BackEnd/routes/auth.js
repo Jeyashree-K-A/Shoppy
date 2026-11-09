@@ -3,194 +3,226 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const auth = require("../middleware/authMiddleware");
+
 const router = express.Router();
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Signup
-router.post("/signup", async (req, res) => {
-  const { name, email, password } = req.body;
+// Cookie configuration
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: "/"
+};
 
+// ================= SIGNUP =================
+
+router.post("/signup", async (req, res) => {
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ error: "Email already exists" });
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        error: "Please enter name, email and password."
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: "Password must contain at least 6 characters."
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: "Email already exists. Please login."
+      });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ name, email, password: hashedPassword });
+
+    const newUser = new User({
+      name: name.trim(),
+      email: normalizedEmail,
+      password: hashedPassword
+    });
 
     await newUser.save();
 
-    res.status(201).json({
-      message: "Signup successful",
-      user: { name: newUser.name, email: newUser.email },
+    return res.status(201).json({
+      success: true,
+      message: "Signup successful!",
+      user: {
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        isAdmin: newUser.isAdmin || false
+      }
     });
+
   } catch (err) {
-    res.status(500).json({ error: "Signup failed" });
+    console.error("Signup Error:", err);
+
+    if (err.code === 11000) {
+      return res.status(400).json({
+        error: "Email already exists. Please login."
+      });
+    }
+
+    return res.status(500).json({
+      error: "Signup failed. Please try again."
+    });
   }
 });
 
-// Login — store token in cookie and return user
+
+// ================= LOGIN =================
+
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: "Invalid email" });
+    const { email, password } = req.body;
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Invalid password" });
+    if (!email || !password) {
+      return res.status(400).json({
+        error: "Email and password are required."
+      });
+    }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({
+      email: normalizedEmail
     });
 
+    if (!user) {
+      return res.status(400).json({
+        error: "Invalid email or password."
+      });
+    }
+
+    const isMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    if (!isMatch) {
+      return res.status(400).json({
+        error: "Invalid email or password."
+      });
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Store token
     user.token = token;
     await user.save();
 
-    // ✅ Production-ல secure: true, sameSite: "None" (cross-domain cookies)
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "None" : "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    // Set cookie
+    res.cookie("token", token, cookieOptions);
 
-    res.status(200).json({
-      message: "Login successful",
+    return res.status(200).json({
+      success: true,
+      message: "Login successful!",
       token,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
-        isAdmin: user.isAdmin || false,
-      },
+        isAdmin: user.isAdmin || false
+      }
     });
+
   } catch (err) {
-    res.status(500).json({ error: "Login failed" });
+    console.error("Login Error:", err);
+
+    return res.status(500).json({
+      error: "Login failed. Please try again."
+    });
   }
 });
 
-// ✅ Protected route to get user info from token
+
+// ================= GET LOGGED-IN USER =================
+
 router.get("/me", auth, async (req, res) => {
   try {
-    res.json({
-      user: {
-        _id: req.user._id,
-        name: req.user.name,
-        email: req.user.email,
-        isAdmin: req.user.isAdmin || false,
-      },
+    return res.status(200).json({
+      success: true,
+      user: req.user
     });
+
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch user" });
+    console.error("Get User Error:", err);
+
+    return res.status(500).json({
+      error: "Failed to fetch user."
+    });
   }
 });
 
-// Logout — clear token cookie
-router.get("/logout", auth, async (req, res) => {
+
+// ================= LOGOUT =================
+
+router.get("/logout", async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (user) {
-      user.token = null;
-      await user.save();
+    let token = req.cookies?.token;
+
+    if (!token && req.headers.authorization) {
+      token = req.headers.authorization
+        .replace(/^Bearer\s+/i, "")
+        .trim();
     }
 
-    // ✅ Same settings as login cookie
+    if (token) {
+      try {
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET
+        );
+
+        const userId = decoded.id || decoded.userId;
+
+        if (userId) {
+          await User.findByIdAndUpdate(userId, {
+            $set: { token: null }
+          });
+        }
+      } catch (tokenError) {
+        console.log("Invalid or expired token during logout.");
+      }
+    }
+
     res.clearCookie("token", {
-      path: "/",
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? "None" : "Lax",
+      sameSite: isProduction ? "none" : "lax",
+      path: "/"
     });
 
-    res.status(200).json({ message: "Logout successful" });
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful!"
+    });
+
   } catch (err) {
-    console.error("Logout error:", err);
-    res.status(500).json({ error: "Logout failed" });
-  }
-});
+    console.error("Logout Error:", err);
 
-module.exports = router;
-// Login — store token in cookie and return user
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: "Invalid email" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Invalid password" });
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
+    return res.status(500).json({
+      error: "Logout failed."
     });
-
-    user.token = token;
-    await user.save();
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false, // set to true in production (HTTPS)
-      sameSite: "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    res.status(200).json({
-      message: "Login successful",
-      token,
-      // ✅ Include isAdmin so frontend can use it properly
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        isAdmin: user.isAdmin || false,
-      },
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Login failed" });
-  }
-});
-
-// ✅ Protected route to get user info from token
-router.get("/me", auth, async (req, res) => {
-  try {
-    // ✅ Return full user object including isAdmin
-    res.json({
-      user: {
-        _id: req.user._id,
-        name: req.user.name,
-        email: req.user.email,
-        isAdmin: req.user.isAdmin || false,
-      },
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch user" });
-  }
-});
-
-// Logout — clear token cookie
-router.get("/logout", auth, async (req, res) => {
-  try {
-    // Clear token in database
-    const user = await User.findById(req.user._id);
-    if (user) {
-      user.token = null;
-      await user.save();
-    }
-
-    // Clear cookie
-    res.clearCookie("token", {
-      path: "/",
-      httpOnly: true,
-      secure: false, // true in production
-      sameSite: "Lax",
-    });
-
-    res.status(200).json({ message: "Logout successful" });
-  } catch (err) {
-    console.error("Logout error:", err);
-    res.status(500).json({ error: "Logout failed" });
   }
 });
 
